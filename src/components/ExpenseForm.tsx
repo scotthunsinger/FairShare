@@ -211,7 +211,7 @@ export function ExpenseForm({
     const previouslyPaid = new Map(
       (expense?.expense_shares ?? []).map((share) => [share.user_id, share.is_paid]),
     );
-    const payerChanged = Boolean(expense) && expense.paid_by !== paidBy;
+    const payerChanged = expense != null && expense.paid_by !== paidBy;
     const shareRows = members.map((member) => {
       const percentage = Number(shares[member.user_id] || 0);
       const alreadyPaid = previouslyPaid.get(member.user_id);
@@ -260,6 +260,12 @@ export function ExpenseForm({
           }
         }
       }
+    }
+
+    if (!expenseId) {
+      setLoading(false);
+      setError("Failed to save the bill.");
+      return;
     }
 
     const itemError = await syncItems(supabase, expenseId, itemCheck.rows, !expense);
