@@ -41,11 +41,13 @@ export function PageShell({
   subtitle,
   children,
   actions,
+  headingExtra,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  headingExtra?: React.ReactNode;
 }) {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
@@ -54,6 +56,7 @@ export function PageShell({
           <h1 className="text-2xl font-semibold tracking-tight text-slate-50">
             {title}
           </h1>
+          {headingExtra}
           {subtitle ? (
             <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
           ) : null}

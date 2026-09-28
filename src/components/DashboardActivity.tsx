@@ -5,10 +5,17 @@ import Link from "next/link";
 import { BillIcon } from "@/components/BillIcon";
 import { DeleteExpenseButton } from "@/components/DeleteExpenseButton";
 import { EmptyState } from "@/components/ui";
-import { buildBalanceMatrix, formatCurrency, memberName } from "@/lib/balance";
+import { formatCurrency, listOpenDebts, listRecentOpenDebts, memberName } from "@/lib/balance";
 import { findBillType, type BillType, type ExpenseWithShares, type HouseholdMember } from "@/lib/types";
 
 const RECENT_COUNT = 3;
+type ListView = "all" | "due" | "recent";
+
+const VIEWS: { id: ListView; label: string }[] = [
+  { id: "all", label: "Show all" },
+  { id: "due", label: "Due" },
+  { id: "recent", label: "Recent" },
+];
 
 export function DashboardActivity({
   expenses,
@@ -19,33 +26,32 @@ export function DashboardActivity({
   members: HouseholdMember[];
   billTypes: BillType[];
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const visibleExpenses = showAll ? expenses : expenses.slice(0, RECENT_COUNT);
-  const debts = buildBalanceMatrix(visibleExpenses, true);
-  const canToggle = expenses.length > RECENT_COUNT;
+  const [debtView, setDebtView] = useState<ListView>("recent");
+  const [expenseView, setExpenseView] = useState<ListView>("recent");
+  const today = localDateKey(new Date());
+  const visibleExpenses = filterExpenses(expenses, expenseView, today);
+  const debts =
+    debtView === "recent"
+      ? listRecentOpenDebts(expenses, RECENT_COUNT)
+      : listOpenDebts(filterExpenses(expenses, debtView, today));
 
   return (
     <>
-      <label className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm">
-        <span className="font-medium text-slate-200">Expenses and balances</span>
-        <select
-          value={showAll ? "all" : "recent"}
-          onChange={(event) => setShowAll(event.target.value === "all")}
-          disabled={!canToggle}
-          className="rounded-md border border-slate-600 bg-slate-950 px-3 py-1.5 text-slate-100 outline-none ring-teal-400/30 focus:ring-2 disabled:opacity-60"
-        >
-          <option value="recent">3 most recent</option>
-          <option value="all">All</option>
-        </select>
-      </label>
-
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold text-slate-100">Who owes whom this month</h2>
+      <section className="mt-8">
+        <SectionHeading
+          title="Who owes whom this month"
+          view={debtView}
+          onChange={setDebtView}
+        />
         {debts.length === 0 ? (
           <div className="mt-3">
             <EmptyState
-              title="No one owes anyone"
-              description="Bills in both directions cancel out, or every share is marked paid."
+              title={debtView === "due" ? "Nothing due to settle" : "No one owes anyone"}
+              description={
+                debtView === "due"
+                  ? "No upcoming bills still need to be paid between roommates."
+                  : "Every share in this view is already marked paid."
+              }
             />
           </div>
         ) : (
@@ -67,12 +73,20 @@ export function DashboardActivity({
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold text-slate-100">Expenses this month</h2>
+        <SectionHeading
+          title="Expenses this month"
+          view={expenseView}
+          onChange={setExpenseView}
+        />
         {visibleExpenses.length === 0 ? (
           <div className="mt-3">
             <EmptyState
-              title="No expenses this month yet"
-              description="Add a utility bill, groceries, or shared dinner to get started."
+              title={expenseView === "due" ? "Nothing due" : "No expenses this month yet"}
+              description={
+                expenseView === "due"
+                  ? "No upcoming bills still need to be settled."
+                  : "Add a utility bill, groceries, or shared dinner to get started."
+              }
             />
           </div>
         ) : (
@@ -135,4 +149,58 @@ export function DashboardActivity({
       </section>
     </>
   );
+}
+
+function SectionHeading({
+  title,
+  view,
+  onChange,
+}: {
+  title: string;
+  view: ListView;
+  onChange: (view: ListView) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+      <div className="flex gap-1">
+        {VIEWS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+              view === option.id
+                ? "bg-teal-950 text-teal-100"
+                : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function filterExpenses(expenses: ExpenseWithShares[], view: ListView, today: string) {
+  if (view === "recent") return expenses.slice(0, RECENT_COUNT);
+  if (view === "due") return expenses.filter((expense) => isUpcomingAndOpen(expense, today));
+  return expenses;
+}
+
+function isUpcomingAndOpen(expense: ExpenseWithShares, today: string) {
+  const due = expense.due_date?.slice(0, 10);
+  if (!due || due < today) return false;
+  if (expense.is_settled) return false;
+  return expense.expense_shares.some(
+    (share) =>
+      !share.is_paid && share.user_id !== expense.paid_by && Number(share.amount_owed) > 0,
+  );
+}
+
+function localDateKey(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }

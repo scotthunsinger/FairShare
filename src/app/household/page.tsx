@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { HouseholdChoices } from "@/components/HouseholdChoices";
+import { HouseholdExit } from "@/components/HouseholdExit";
 import { HouseholdManager } from "@/components/HouseholdManager";
+import { HouseholdNameEditor } from "@/components/HouseholdNameEditor";
 import { HouseholdOnboarding } from "@/components/HouseholdOnboarding";
 import { PageShell } from "@/components/ui";
 import { getActiveHousehold, listMyHouseholds, requireUser } from "@/lib/household";
@@ -37,27 +40,18 @@ export default async function HouseholdPage() {
       <AppNav />
       <PageShell
         title={household.name}
+        headingExtra={
+          membership.role === "organizer" ? (
+            <HouseholdNameEditor householdId={household.id} name={household.name} />
+          ) : null
+        }
         subtitle="Members, invite code, and share presets. You can belong to more than one household."
       >
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-slate-100">Your households</h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {mine.map((item) => (
-              <li
-                key={item.id}
-                className={`rounded-full border px-3 py-1 text-sm ${
-                  item.id === household.id
-                    ? "border-teal-500 bg-teal-950 text-teal-100"
-                    : "border-slate-700 bg-slate-900 text-slate-200"
-                }`}
-              >
-                {item.name}
-                <span className="ml-1 text-slate-400">· {item.role}</span>
-              </li>
-            ))}
-          </ul>
+          <HouseholdChoices households={mine} activeId={household.id} />
           <p className="mt-2 text-xs text-slate-500">
-            Use the household menu in the header to switch. The pages then show that household&apos;s bills.
+            Click a household to open it. The pages then show that household&apos;s bills.
           </p>
         </section>
         <HouseholdManager
@@ -67,6 +61,14 @@ export default async function HouseholdPage() {
           isOrganizer={membership.role === "organizer"}
           currentUserId={user.id}
         />
+        <div className="mt-6">
+          <HouseholdExit
+            householdId={household.id}
+            householdName={household.name}
+            isOrganizer={membership.role === "organizer"}
+            memberCount={members.length}
+          />
+        </div>
         <div className="mt-10">
           <HouseholdOnboarding
             heading="Create or join another household"

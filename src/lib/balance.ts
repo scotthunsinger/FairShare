@@ -81,6 +81,54 @@ export function buildBalanceMatrix(
   return edges.sort((a, b) => b.amount - a.amount);
 }
 
+/** Every unpaid share, summed in one direction only. Opposite debts stay listed. */
+export function listOpenDebts(expenses: ExpenseWithShares[]): DebtEdge[] {
+  const totals = new Map<string, number>();
+
+  for (const expense of expenses) {
+    for (const share of expense.expense_shares) {
+      if (share.user_id === expense.paid_by) continue;
+      if (share.is_paid) continue;
+      if (Number(share.amount_owed) <= 0) continue;
+
+      const key = `${share.user_id}|${expense.paid_by}`;
+      totals.set(key, (totals.get(key) ?? 0) + Number(share.amount_owed));
+    }
+  }
+
+  return [...totals.entries()]
+    .map(([key, amount]) => {
+      const [fromUserId, toUserId] = key.split("|");
+      return { fromUserId, toUserId, amount: roundMoney(amount) };
+    })
+    .sort((a, b) => b.amount - a.amount);
+}
+
+/** Newest unpaid shares first. Expenses must already be ordered newest to oldest. */
+export function listRecentOpenDebts(
+  expenses: ExpenseWithShares[],
+  limit: number,
+): DebtEdge[] {
+  const edges: DebtEdge[] = [];
+
+  for (const expense of expenses) {
+    for (const share of expense.expense_shares) {
+      if (share.user_id === expense.paid_by) continue;
+      if (share.is_paid) continue;
+      if (Number(share.amount_owed) <= 0) continue;
+
+      edges.push({
+        fromUserId: share.user_id,
+        toUserId: expense.paid_by,
+        amount: roundMoney(Number(share.amount_owed)),
+      });
+      if (edges.length >= limit) return edges;
+    }
+  }
+
+  return edges;
+}
+
 /** Amount each person still owes after debts in both directions cancel out. */
 export function netOwedByUser(expenses: ExpenseWithShares[]): Map<string, number> {
   const nets = new Map<string, number>();
