@@ -1,50 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { HouseholdSwitcher } from "@/components/HouseholdSwitcher";
+import type { HouseholdOption } from "@/lib/household";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/expenses/new", label: "Add Bill" },
   { href: "/balance", label: "Balance" },
+  { href: "/budget", label: "Budget" },
   { href: "/household", label: "Household" },
   { href: "/settings", label: "Settings" },
 ];
 
-export function Nav({ email }: { email?: string | null }) {
+export function Nav({
+  households = [],
+  activeHouseholdId = null,
+}: {
+  households?: HouseholdOption[];
+  activeHouseholdId?: string | null;
+}) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-teal-200">
-            FairShare
-          </Link>
-          {email ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="text-sm text-slate-400 hover:text-slate-100 sm:hidden"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          ) : null}
-        </div>
-        <nav className="flex flex-wrap items-center gap-1">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+        <Link
+          href="/dashboard"
+          className="shrink-0 text-2xl font-bold tracking-tight text-teal-200"
+        >
+          FairShare
+        </Link>
+        <nav className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1 overflow-x-auto">
+          <HouseholdSwitcher households={households} activeId={activeHouseholdId} />
           {links.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -52,7 +42,7 @@ export function Nav({ email }: { email?: string | null }) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-md px-3 py-1.5 text-sm transition ${
+                className={`shrink-0 rounded-md px-2 py-1.5 text-sm transition ${
                   active
                     ? "bg-teal-950 font-medium text-teal-100"
                     : "text-slate-300 hover:bg-slate-800 hover:text-slate-50"
@@ -62,16 +52,6 @@ export function Nav({ email }: { email?: string | null }) {
               </Link>
             );
           })}
-          {email ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="ml-2 hidden rounded-md px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-100 sm:inline-flex"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          ) : null}
         </nav>
       </div>
     </header>

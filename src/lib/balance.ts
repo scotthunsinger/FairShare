@@ -81,6 +81,18 @@ export function buildBalanceMatrix(
   return edges.sort((a, b) => b.amount - a.amount);
 }
 
+/** Amount each person still owes after debts in both directions cancel out. */
+export function netOwedByUser(expenses: ExpenseWithShares[]): Map<string, number> {
+  const nets = new Map<string, number>();
+  for (const edge of buildBalanceMatrix(expenses, true)) {
+    nets.set(
+      edge.fromUserId,
+      roundMoney((nets.get(edge.fromUserId) ?? 0) + edge.amount),
+    );
+  }
+  return nets;
+}
+
 export function totalsByUser(
   expenses: ExpenseWithShares[],
 ): Map<string, { responsibility: number; unpaid: number; paidUpfront: number }> {
@@ -101,7 +113,7 @@ export function totalsByUser(
     for (const share of expense.expense_shares) {
       const row = ensure(share.user_id);
       row.responsibility += Number(share.amount_owed);
-      if (!share.is_paid) {
+      if (!share.is_paid && share.user_id !== expense.paid_by) {
         row.unpaid += Number(share.amount_owed);
       }
     }

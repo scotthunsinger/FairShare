@@ -25,12 +25,14 @@ export function SettingsForm({
   displayName,
   role,
   householdName,
+  householdId,
   theme,
 }: {
   email: string;
   displayName: string | null;
   role: string | null;
   householdName: string | null;
+  householdId: string | null;
   theme: ThemeChoice;
 }) {
   const router = useRouter();
@@ -73,6 +75,20 @@ export function SettingsForm({
     }, 400);
   }
 
+  async function signOut() {
+    setError("");
+    setSaving("sign-out");
+    const supabase = createClient();
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      setSaving("");
+      setError(signOutError.message);
+      return;
+    }
+    router.push("/");
+    router.refresh();
+  }
+
   async function saveAccount(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -97,9 +113,10 @@ export function SettingsForm({
       }
     }
 
-    if (displayName !== null && trimmedName !== displayName) {
+    if (householdId && displayName !== null && trimmedName !== displayName) {
       const { error: nameError } = await supabase.rpc("update_my_display_name", {
         p_display_name: trimmedName,
+        p_household_id: householdId,
       });
       if (nameError) {
         setSaving("");
@@ -295,6 +312,19 @@ export function SettingsForm({
             />
           </div>
         ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
+        <h2 className="text-sm font-semibold text-slate-100">Sign out</h2>
+        <p className="mt-1 text-sm text-slate-400">Leave FairShare on this browser.</p>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          disabled={saving === "sign-out"}
+          className="mt-4 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800 disabled:opacity-60"
+        >
+          {saving === "sign-out" ? "Signing out…" : "Sign out"}
+        </button>
       </section>
     </div>
   );

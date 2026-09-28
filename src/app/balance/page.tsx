@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Nav } from "@/components/Nav";
+import { AppNav } from "@/components/AppNav";
 import { BalanceClient } from "@/components/BalanceClient";
 import { EmptyState, PageShell } from "@/components/ui";
 import { currentMonth } from "@/lib/balance";
+import { ensurePayerSharesPaid } from "@/lib/payer-shares";
 import { getActiveHousehold, requireUser } from "@/lib/household";
 import type { BillType, ExpenseWithShares } from "@/lib/types";
 
@@ -16,7 +17,7 @@ export default async function BalancePage() {
   if (!household) {
     return (
       <div className="min-h-screen">
-        <Nav email={user.email} />
+        <AppNav />
         <PageShell title="Monthly balance">
           <EmptyState
             title="No household yet"
@@ -44,7 +45,10 @@ export default async function BalancePage() {
     .select("*")
     .eq("household_id", household.id);
 
-  const expenses = (expensesData ?? []) as ExpenseWithShares[];
+  const expenses = await ensurePayerSharesPaid(
+    supabase,
+    (expensesData ?? []) as ExpenseWithShares[],
+  );
   const availableMonths = Array.from(
     new Set(expenses.map((e) => e.month)),
   ).sort((a, b) => b.localeCompare(a));
@@ -52,7 +56,7 @@ export default async function BalancePage() {
 
   return (
     <div className="min-h-screen">
-      <Nav email={user.email} />
+      <AppNav />
       <PageShell
         title="Monthly balance"
         subtitle={`Who owes whom in ${household.name}`}

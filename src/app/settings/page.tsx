@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Nav } from "@/components/Nav";
+import { AppNav } from "@/components/AppNav";
 import { SettingsForm } from "@/components/SettingsForm";
 import { PageShell } from "@/components/ui";
 import { getActiveHousehold, requireUser } from "@/lib/household";
@@ -14,7 +14,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <Nav email={user.email} />
+      <AppNav />
       <PageShell
         title="Settings"
         subtitle="Your account and the colors FairShare uses."
@@ -24,6 +24,7 @@ export default async function SettingsPage() {
           displayName={membership?.display_name ?? null}
           role={membership?.role ?? null}
           householdName={household?.name ?? null}
+          householdId={household?.id ?? null}
           theme={theme}
         />
       </PageShell>

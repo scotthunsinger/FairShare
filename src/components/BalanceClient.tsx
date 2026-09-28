@@ -8,6 +8,7 @@ import {
   formatCurrency,
   formatMonthLabel,
   memberName,
+  netOwedByUser,
   totalsByUser,
 } from "@/lib/balance";
 import { BillIcon } from "@/components/BillIcon";
@@ -45,8 +46,16 @@ export function BalanceClient({
   );
 
   const totals = useMemo(() => totalsByUser(monthExpenses), [monthExpenses]);
+  const stillOwes = useMemo(() => netOwedByUser(monthExpenses), [monthExpenses]);
 
   async function toggleSharePaid(shareId: string, isPaid: boolean) {
+    const target = monthExpenses
+      .flatMap((expense) =>
+        expense.expense_shares.map((share) => ({ share, expense })),
+      )
+      .find((row) => row.share.id === shareId);
+    if (target && target.share.user_id === target.expense.paid_by) return;
+
     setError("");
     const supabase = createClient();
     const { error: updateError } = await supabase
@@ -134,8 +143,8 @@ export function BalanceClient({
                     </span>
                     <span className="text-slate-400">
                       Share {formatCurrency(row.responsibility)} · Paid upfront{" "}
-                      {formatCurrency(row.paidUpfront)} · Unpaid{" "}
-                      {formatCurrency(row.unpaid)}
+                      {formatCurrency(row.paidUpfront)} · Still owes{" "}
+                      {formatCurrency(stillOwes.get(member.user_id) ?? 0)}
                     </span>
                   </li>
                 );
@@ -197,7 +206,9 @@ export function BalanceClient({
                   ) : null}
                 </div>
                 <ul className="mt-3 space-y-2">
-                  {expense.expense_shares.map((share) => (
+                  {expense.expense_shares.map((share) => {
+                    const payerShare = share.user_id === expense.paid_by;
+                    return (
                     <li
                       key={share.id}
                       className="flex flex-wrap items-center justify-between gap-2 text-sm"
@@ -210,16 +221,23 @@ export function BalanceClient({
                       <label className="inline-flex items-center gap-2 text-slate-300">
                         <input
                           type="checkbox"
-                          checked={share.is_paid}
+                          checked={payerShare || share.is_paid}
+                          disabled={payerShare}
                           onChange={(e) =>
                             toggleSharePaid(share.id, e.target.checked)
                           }
-                          className="h-4 w-4 rounded border-slate-500 text-teal-300 focus:ring-teal-400"
+                          title={
+                            payerShare
+                              ? "The person who paid this bill already covered their share."
+                              : undefined
+                          }
+                          className="h-4 w-4 rounded border-slate-500 text-teal-300 focus:ring-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
                         />
                         Paid
                       </label>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </article>
             ))}

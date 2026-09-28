@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Nav } from "@/components/Nav";
+import { AppNav } from "@/components/AppNav";
+import { DeleteExpenseButton } from "@/components/DeleteExpenseButton";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { EmptyState, PageShell } from "@/components/ui";
 import { getActiveHousehold, requireUser } from "@/lib/household";
@@ -20,7 +21,7 @@ export default async function EditExpensePage({
   if (!household) {
     return (
       <div className="min-h-screen">
-        <Nav email={user.email} />
+        <AppNav />
         <PageShell title="Edit bill">
           <EmptyState
             title="Join a household first"
@@ -56,7 +57,7 @@ export default async function EditExpensePage({
 
   return (
     <div className="min-h-screen">
-      <Nav email={user.email} />
+      <AppNav />
       <PageShell
         title="Edit bill"
         subtitle={`Update ${expense.title} in ${household.name}`}
@@ -69,6 +70,13 @@ export default async function EditExpensePage({
             billTypes={(billTypeRows ?? []) as BillType[]}
             expense={expense}
           />
+          <div className="mt-4">
+            <DeleteExpenseButton
+              expenseId={expense.id}
+              title={expense.title}
+              redirectTo="/dashboard"
+            />
+          </div>
         </div>
       </PageShell>
     </div>

@@ -6,7 +6,9 @@ const PROTECTED_PREFIXES = [
   "/expenses",
   "/balance",
   "/household",
+  "/calendar",
   "/settings",
+  "/budget",
 ];
 
 export async function updateSession(request: NextRequest) {

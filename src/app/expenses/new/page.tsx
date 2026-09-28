@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Nav } from "@/components/Nav";
+import { AppNav } from "@/components/AppNav";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { EmptyState, PageShell } from "@/components/ui";
 import { getActiveHousehold, requireUser } from "@/lib/household";
@@ -15,7 +15,7 @@ export default async function NewExpensePage() {
   if (!household) {
     return (
       <div className="min-h-screen">
-        <Nav email={user.email} />
+        <AppNav />
         <PageShell title="Add expense">
           <EmptyState
             title="Join a household first"
@@ -56,7 +56,7 @@ export default async function NewExpensePage() {
 
   return (
     <div className="min-h-screen">
-      <Nav email={user.email} />
+      <AppNav />
       <PageShell
         title="Add a bill"
         subtitle={`Split an expense across ${household.name}`}

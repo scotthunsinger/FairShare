@@ -1,5 +1,14 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import type { Household, HouseholdMember } from "@/lib/types";
+import type { Household, HouseholdMember, HouseholdRole } from "@/lib/types";
+
+export const HOUSEHOLD_COOKIE = "fairshare-household";
+
+export type HouseholdOption = {
+  id: string;
+  name: string;
+  role: HouseholdRole;
+};
 
 export async function requireUser() {
   const supabase = await createClient();
@@ -14,20 +23,41 @@ export async function requireUser() {
   return { supabase, user };
 }
 
+export async function listMyHouseholds(userId: string): Promise<HouseholdOption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("household_members")
+    .select("role, joined_at, households(id, name)")
+    .eq("user_id", userId)
+    .order("joined_at", { ascending: true });
+
+  return (data ?? []).flatMap((row) => {
+    const nested = row.households as { id: string; name: string } | { id: string; name: string }[] | null;
+    const household = Array.isArray(nested) ? nested[0] : nested;
+    if (!household) return [];
+    return [{ id: household.id, name: household.name, role: row.role as HouseholdRole }];
+  });
+}
+
 export async function getActiveHousehold(userId: string): Promise<{
   household: Household | null;
   membership: HouseholdMember | null;
   members: HouseholdMember[];
 }> {
   const supabase = await createClient();
+  const cookieStore = await cookies();
+  const preferredId = cookieStore.get(HOUSEHOLD_COOKIE)?.value;
 
-  const { data: membership } = await supabase
+  const { data: memberships } = await supabase
     .from("household_members")
     .select("*")
     .eq("user_id", userId)
-    .order("joined_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("joined_at", { ascending: true });
+
+  const membership =
+    memberships?.find((row) => row.household_id === preferredId) ??
+    memberships?.[0] ??
+    null;
 
   if (!membership) {
     return { household: null, membership: null, members: [] };

@@ -3,9 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { selectHousehold } from "@/lib/household-actions";
 import { ErrorBanner } from "@/components/ui";
 
-export function HouseholdOnboarding() {
+export function HouseholdOnboarding({
+  heading = "Get started with a household",
+  detail = "Create a household for your roommates, or join one with an invite code.",
+}: {
+  heading?: string;
+  detail?: string;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<"create" | "join">("create");
   const [name, setName] = useState("");
@@ -19,15 +26,18 @@ export function HouseholdOnboarding() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { error: rpcError } = await supabase.rpc("create_household", {
+    const { data, error: rpcError } = await supabase.rpc("create_household", {
       p_name: name.trim(),
       p_display_name: displayName.trim(),
     });
-    setLoading(false);
     if (rpcError) {
+      setLoading(false);
       setError(rpcError.message);
       return;
     }
+    const created = data as { id?: string } | null;
+    if (created?.id) await selectHousehold(created.id);
+    setLoading(false);
     router.refresh();
   }
 
@@ -36,24 +46,25 @@ export function HouseholdOnboarding() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { error: rpcError } = await supabase.rpc("join_household", {
+    const { data, error: rpcError } = await supabase.rpc("join_household", {
       p_invite_code: inviteCode.trim(),
       p_display_name: displayName.trim(),
     });
-    setLoading(false);
     if (rpcError) {
+      setLoading(false);
       setError(rpcError.message);
       return;
     }
+    const joined = data as { id?: string } | null;
+    if (joined?.id) await selectHousehold(joined.id);
+    setLoading(false);
     router.refresh();
   }
 
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-50">Get started with a household</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Create a household for your roommates, or join one with an invite code.
-      </p>
+      <h2 className="text-lg font-semibold text-slate-50">{heading}</h2>
+      <p className="mt-1 text-sm text-slate-500">{detail}</p>
 
       <div className="mt-4 flex gap-2">
         <button

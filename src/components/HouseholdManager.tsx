@@ -131,7 +131,7 @@ export function HouseholdManager({
       <section className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
         <h2 className="text-sm font-semibold text-slate-100">Invite roommates</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Share this code so others can join from the dashboard.
+          Share this code. Someone else can enter it under Household to join.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <code className="rounded-lg bg-slate-950 px-3 py-2 font-mono text-lg tracking-widest text-teal-100">

@@ -71,6 +71,18 @@ export type ExpenseWithShares = Expense & {
   expense_items?: ExpenseItem[];
 };
 
+export type BudgetPeriodKind = "day" | "week" | "month" | "year";
+
+export type Budget = {
+  id: string;
+  household_id: string;
+  user_id: string;
+  period_kind: BudgetPeriodKind;
+  period_start: string;
+  amount: number;
+  created_at: string;
+};
+
 export type BillType = {
   id: string;
   household_id: string;

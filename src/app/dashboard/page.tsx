@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Nav } from "@/components/Nav";
+import { AppNav } from "@/components/AppNav";
+import { DashboardActivity } from "@/components/DashboardActivity";
 import { HouseholdOnboarding } from "@/components/HouseholdOnboarding";
-import { EmptyState, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 import {
   currentMonth,
   formatCurrency,
   formatMonthLabel,
-  memberName,
+  netOwedByUser,
 } from "@/lib/balance";
+import { ensurePayerSharesPaid } from "@/lib/payer-shares";
 import { getActiveHousehold, requireUser } from "@/lib/household";
-import { BillIcon } from "@/components/BillIcon";
-import { findBillType, type BillType, type ExpenseWithShares } from "@/lib/types";
+import type { BillType, ExpenseWithShares } from "@/lib/types";
 
 export default async function DashboardPage() {
   const { user } = await requireUser();
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
   if (!household || !membership) {
     return (
       <div className="min-h-screen">
-        <Nav email={user.email} />
+        <AppNav />
         <PageShell
           title="Welcome to FairShare"
           subtitle="Create or join a household to start splitting expenses."
@@ -49,30 +50,21 @@ export default async function DashboardPage() {
     .eq("household_id", household.id);
 
   const billTypes = (billTypeRows ?? []) as BillType[];
-  const expenses = (expensesData ?? []) as ExpenseWithShares[];
+  const expenses = await ensurePayerSharesPaid(
+    supabase,
+    (expensesData ?? []) as ExpenseWithShares[],
+  );
   const monthTotal = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   const myShares = expenses.flatMap((e) =>
     e.expense_shares.filter((s) => s.user_id === user.id),
   );
   const myOwed = myShares.reduce((sum, s) => sum + Number(s.amount_owed), 0);
-  const myUnpaid = myShares
-    .filter((s) => !s.is_paid)
-    .reduce((sum, s) => sum + Number(s.amount_owed), 0);
-
-  const unpaidShares = expenses.flatMap((e) =>
-    e.expense_shares
-      .filter((s) => !s.is_paid)
-      .map((s) => ({
-        ...s,
-        title: e.title,
-        paid_by: e.paid_by,
-      })),
-  );
+  const myUnpaid = netOwedByUser(expenses).get(user.id) ?? 0;
 
   return (
     <div className="min-h-screen">
-      <Nav email={user.email} />
+      <AppNav />
       <PageShell
         title={household.name}
         subtitle={`${formatMonthLabel(month)} overview`}
@@ -106,113 +98,7 @@ export default async function DashboardPage() {
           </ul>
         </section>
 
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold text-slate-100">
-            Unpaid balances this month
-          </h2>
-          {unpaidShares.length === 0 ? (
-            <div className="mt-3">
-              <EmptyState
-                title="No unpaid balances"
-                description="Everyone is caught up for this month."
-              />
-            </div>
-          ) : (
-            <ul className="mt-3 divide-y divide-slate-800 rounded-xl border border-slate-700 bg-slate-900/80">
-              {unpaidShares.map((share) => (
-                <li
-                  key={share.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-                >
-                  <span className="text-slate-200">
-                    <span className="font-medium">
-                      {memberName(members, share.user_id)}
-                    </span>{" "}
-                    owes {formatCurrency(Number(share.amount_owed))} on{" "}
-                    {share.title}
-                  </span>
-                  <span className="text-slate-400">
-                    to {memberName(members, share.paid_by)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="mt-8">
-          <h2 className="text-sm font-semibold text-slate-100">
-            Expenses this month
-          </h2>
-          {expenses.length === 0 ? (
-            <div className="mt-3">
-              <EmptyState
-                title="No expenses this month yet"
-                description="Add a utility bill, groceries, or shared dinner to get started."
-              />
-            </div>
-          ) : (
-            <ul className="mt-3 divide-y divide-slate-800 rounded-xl border border-slate-700 bg-slate-900/80">
-              {expenses.map((expense) => {
-                const billType = findBillType(billTypes, expense.category);
-                return (
-                <li
-                  key={expense.id}
-                  className="px-4 py-3 text-sm"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <BillIcon type={billType} />
-                    <div>
-                    <p className="font-medium text-slate-100">{expense.title}</p>
-                    <p className="text-slate-400">
-                      <span className="capitalize">{expense.category}</span>
-                      {" · paid by "}
-                      {memberName(members, expense.paid_by)}
-                    </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                  <p className="font-medium text-slate-100">
-                    {formatCurrency(Number(expense.amount))}
-                  </p>
-                  <Link
-                    href={`/expenses/${expense.id}/edit`}
-                    className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-teal-200 hover:bg-slate-800"
-                  >
-                    Edit
-                  </Link>
-                  </div>
-                  </div>
-                  {(expense.expense_items ?? []).length > 0 ? (
-                    <ul className="mt-3 space-y-1 border-t border-slate-800 pt-3 text-xs text-slate-300">
-                      {expense.expense_items?.map((item) => (
-                        <li key={item.id} className="flex flex-wrap justify-between gap-2">
-                          <span>
-                            <span className="capitalize">{item.kind}</span>
-                            {" · "}
-                            {item.name}
-                            {" · "}
-                            {Number(item.quantity)} at{" "}
-                            {formatCurrency(Number(item.unit_cost))} each
-                          </span>
-                          <span>
-                            {formatCurrency(Number(item.quantity) * Number(item.unit_cost))}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-500">
-                      Nothing listed on this bill.
-                    </p>
-                  )}
-                </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        <DashboardActivity expenses={expenses} members={members} billTypes={billTypes} />
       </PageShell>
     </div>
   );

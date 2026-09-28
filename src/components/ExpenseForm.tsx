@@ -105,16 +105,19 @@ export function ExpenseForm({
       });
       return map;
     }
-    members.forEach((m, index) => {
-      if (defaultPercents?.[m.user_id] != null) {
-        map[m.user_id] = String(defaultPercents[m.user_id]);
-      } else if (index === members.length - 1) {
-        const used = members
-          .slice(0, -1)
-          .reduce((sum, member) => sum + equalShare, 0);
-        map[m.user_id] = String(Math.round((100 - used) * 100) / 100);
+    const presetComplete =
+      defaultPercents != null &&
+      members.every((member) => defaultPercents[member.user_id] != null);
+    members.forEach((member, index) => {
+      if (presetComplete) {
+        map[member.user_id] = String(defaultPercents[member.user_id]);
+        return;
+      }
+      if (index === members.length - 1) {
+        const used = equalShare * (members.length - 1);
+        map[member.user_id] = String(Math.round((100 - used) * 100) / 100);
       } else {
-        map[m.user_id] = String(equalShare);
+        map[member.user_id] = String(equalShare);
       }
     });
     return map;
@@ -211,7 +214,6 @@ export function ExpenseForm({
     const previouslyPaid = new Map(
       (expense?.expense_shares ?? []).map((share) => [share.user_id, share.is_paid]),
     );
-    const payerChanged = expense != null && expense.paid_by !== paidBy;
     const shareRows = members.map((member) => {
       const percentage = Number(shares[member.user_id] || 0);
       const alreadyPaid = previouslyPaid.get(member.user_id);
@@ -220,9 +222,7 @@ export function ExpenseForm({
         user_id: member.user_id,
         percentage,
         amount_owed: Math.round(((amountNum * percentage) / 100) * 100) / 100,
-        is_paid: payerChanged
-          ? member.user_id === paidBy || alreadyPaid === true
-          : (alreadyPaid ?? member.user_id === paidBy),
+        is_paid: member.user_id === paidBy || alreadyPaid === true,
       };
     });
 
