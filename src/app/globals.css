@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --accent: #2dd4bf;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-on-accent: #042f2e;
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-fraunces);
+}
+
+body {
+  color-scheme: dark;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(45, 212, 191, 0.16), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 116, 144, 0.18), transparent),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+html[data-theme="white"] {
+  color-scheme: light;
+  --background: #f4f7fb;
+  --foreground: #0f172a;
+  --accent: #0f766e;
+  --color-on-accent: #042f2e;
+  --color-slate-950: #ffffff;
+  --color-slate-900: #f8fafc;
+  --color-slate-800: #e2e8f0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-600: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+  --color-slate-50: #020617;
+  --color-teal-950: #ccfbf1;
+  --color-teal-900: #99f6e4;
+  --color-teal-800: #5eead4;
+  --color-teal-500: #0f766e;
+  --color-teal-400: #0f766e;
+  --color-teal-300: #115e59;
+  --color-teal-200: #134e4a;
+  --color-teal-100: #042f2e;
+  --color-teal-50: #022c22;
+  --color-rose-950: #fff1f2;
+  --color-rose-900: #fecdd3;
+  --color-rose-300: #be123c;
+  --color-rose-200: #9f1239;
+}
+
+html[data-theme="white"] body {
+  color-scheme: light;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(15, 118, 110, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 116, 144, 0.1), transparent),
+    var(--background);
+}
+
+html[data-theme="colorful"] {
+  color-scheme: dark;
+  --background: #1b1035;
+  --foreground: #fff7ed;
+  --accent: #fb7185;
+  --color-on-accent: #3b0764;
+  --color-slate-950: #2a1748;
+  --color-slate-900: #311a56;
+  --color-slate-800: #4c1d95;
+  --color-slate-700: #6d28d9;
+  --color-slate-600: #a78bfa;
+  --color-slate-500: #ddd6fe;
+  --color-slate-400: #fde68a;
+  --color-slate-300: #ffedd5;
+  --color-slate-200: #fff7ed;
+  --color-slate-100: #fffbeb;
+  --color-slate-50: #ffffff;
+  --color-teal-950: #4c1d95;
+  --color-teal-900: #6d28d9;
+  --color-teal-800: #a21caf;
+  --color-teal-500: #f97316;
+  --color-teal-400: #fb7185;
+  --color-teal-300: #fdba74;
+  --color-teal-200: #fde68a;
+  --color-teal-100: #fff7ed;
+  --color-teal-50: #ffffff;
+  --color-rose-950: #4a044e;
+  --color-rose-900: #86198f;
+  --color-rose-300: #fecdd3;
+  --color-rose-200: #ffe4e6;
+}
+
+html[data-theme="colorful"] body {
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(251, 113, 133, 0.35), transparent),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(251, 191, 36, 0.28), transparent),
+    radial-gradient(ellipse 50% 40% at 80% 100%, rgba(167, 139, 250, 0.25), transparent),
+    var(--background);
+}
